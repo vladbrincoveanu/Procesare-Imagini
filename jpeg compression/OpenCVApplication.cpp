@@ -1,4 +1,4 @@
-// OpenCVApplication.cpp : Defines the entry point for the console application.
+﻿// OpenCVApplication.cpp : Defines the entry point for the console application.
 //
 
 #include "stdafx.h"
@@ -19,7 +19,7 @@ uchar array[] = { 16,11,10,16,24,40,51,61,
 
 Mat_<uchar> quantize(8, 8, array);
 
-int RATIO,HEIGHT,WIDTH;
+int RATIO,HEIGHT,WIDTH,NBBLOCK;
 
 int* zigZagMatrix(int arr[][8], int n, int m)
 {
@@ -301,7 +301,7 @@ Mat_<int> dct(Mat_<int> signedMatrix, int xoffset, int yoffset, int n, int m) {
 
 	int N = 8;
 	int i, j, x, y = 0;
-	float temp;
+	double temp;
 	for (i = 0; i < N; i++) {
 		for (j = 0; j < N; j++) {
 			temp = 0.0;
@@ -342,8 +342,8 @@ Mat_<int> idct(Mat_<int> signedMatrix, int xoffset, int yoffset, int n, int m) {
 
 	int N = 8;
 	int i, j, x, y = 0;
-	float temp;
-	float sum;
+	double temp;
+	double sum;
 
 
 	for (x = 0; x < N; x++) {
@@ -642,8 +642,10 @@ void compression1(){
 	WIDTH = width;
 
 	int nbOfBlocks = height * width / 64;
+	NBBLOCK = nbOfBlocks;
 	Mat arrayB[1000];
-	//printf("%d", nbOfBlocks);
+	//printf("%d", nbOfBlocks);1
+
 	uchar *srcData = img.data;
 	
 	printf("COMPRESSION RATIO 1 - 64\n");
@@ -685,39 +687,37 @@ void compression1(){
 	int contor = 0;
 	boolean a = true;
 	char counter = 0;
+
+	double t = (double)getTickCount(); // Găsește timpul curent [ms]
+									   // … Procesarea propriu-zisă …
+									   // Găsește timpul current din nou și calculează timpul scurs [ms]
+
 	for (int i = 0; i < height-7; i += 8) {
 		for (int j = 0; j < width-7; j += 8) {
-			matrix1 = matrixAt(signedMatrixR, i, j, 8, 8);
-			matrix2 = matrixAt(signedMatrixG, i, j, 8, 8);
-			matrix3 = matrixAt(signedMatrixB, i, j, 8, 8);
+		/*	matrix1 = ;
+			matrix2 = ;
+			matrix3 = ;*/
 		
-			if (a == true) {
-				printMatrix(matrix1);
-			}
-			
-			matrix1 = dct(matrix1, 0, 0, 8, 8);
-			matrix2 = dct(matrix2, 0, 0, 8, 8);
-			matrix3 = dct(matrix3, 0, 0, 8, 8);
+			matrix1 = dct(matrixAt(signedMatrixR, i, j, 8, 8), 0, 0, 8, 8);
+			matrix2 = dct(matrixAt(signedMatrixG, i, j, 8, 8), 0, 0, 8, 8);
+			matrix3 = dct(matrixAt(signedMatrixB, i, j, 8, 8), 0, 0, 8, 8);
 
-			if (a == true) {
-				printMatrix(matrix1);
-				a = false;
-			}
-
-
-			bitStream1 = zigZag(matrix1);
-			bitStream2 = zigZag(matrix2);
-			bitStream3 = zigZag(matrix3);
+		/*	bitStream1 = ;
+			bitStream2 = ;
+			bitStream3 = ;*/
 
 		
-			fwrite(bitStream1, sizeof(char), RATIO, f);
-			fwrite(bitStream2, sizeof(char), RATIO, f);
-			fwrite(bitStream3, sizeof(char), RATIO, f);
+			fwrite(zigZag(matrix1), sizeof(char), RATIO, f);
+			fwrite(zigZag(matrix2), sizeof(char), RATIO, f);
+			fwrite(zigZag(matrix3), sizeof(char), RATIO, f);
 		
 		}
 		
 	}
-	printf("%d BLOCURI\n", contor);
+	t = ((double)getTickCount() - t) / getTickFrequency();
+	// Afișarea la consolă a timpului de procesare [ms]
+	printf("Time = %.8f [ms]\n", t * 1000 / nbOfBlocks);
+
 	fclose(f);
 
 	//END PROGRAM////
@@ -752,10 +752,17 @@ void decompression() {
 	Mat_<int> matG1(8, 8);
 	Mat_<int> matB1(8, 8);
 
+	double t = (double)getTickCount(); // Găsește timpul curent [ms]
+									   // … Procesarea propriu-zisă …
+									   // Găsește timpul current din nou și calculează timpul scurs [ms]
+
 	int x, y = 0;
 	for (int i = 0; i < HEIGHT - 7; i += 8) {
 		for (int j = 0; j < WIDTH  - 7; j += 8) {
 
+			bitStream1 = (char*)calloc(64, sizeof(char));
+			bitStream2 = (char*)calloc(64, sizeof(char));
+			bitStream3 = (char*)calloc(64, sizeof(char));
 		
 			fread(bitStream1, sizeof(char), RATIO, fileptr);
 			fread(bitStream2, sizeof(char), RATIO, fileptr);
@@ -767,9 +774,6 @@ void decompression() {
 			matG = revZigZag(bitStream2);
 			matB = revZigZag(bitStream3);
 		
-			if (a == true) {
-				printMatrix(matR);
-			}
 			for (x = 0; x < 8; x++) {
 				for (y = 0; y < 8; y++) {
 					matR1(x, y) = matR(x, y)*quantize(x, y);
@@ -778,40 +782,62 @@ void decompression() {
 				}
 			}
 
-			matR = idct(matR1, 0, 0, 8, 8);
-			matG = idct(matG1, 0, 0, 8, 8);
-			matB = idct(matB1, 0, 0, 8, 8);
+			/*matR = ;
+			matG = ;
+			matB = ;*/
 
-			if (a == true) {
-				printMatrix(matR);
-				a = false;
-			}
+			matrixTo(idct(matR1, 0, 0, 8, 8), &rezultatR, i, j, 8, 8);
+			matrixTo(idct(matG1, 0, 0, 8, 8), &rezultatG, i, j, 8, 8);
+			matrixTo(idct(matB1, 0, 0, 8, 8), &rezultatB, i, j, 8, 8);
 
-
-			matrixTo(matR, &rezultatR, i, j, 8, 8);
-			matrixTo(matG, &rezultatG, i, j, 8, 8);
-			matrixTo(matB, &rezultatB, i, j, 8, 8);
-
-
+			free(bitStream1);
+			free(bitStream2);
+			free(bitStream3);
 		}
 	}
 
+	t = ((double)getTickCount() - t) / getTickFrequency();
+	// Afișarea la consolă a timpului de procesare [ms]
+	printf("Time = %.8f [ms]\n", t * 1000/ NBBLOCK);
 
 	for (int i = 0; i < HEIGHT; i++) {
 		for (int j = 0; j < WIDTH; j++) {
-			uchar R = (uchar)(rezultatR(i, j) + 128);
-			uchar G = (uchar)(rezultatG(i, j) + 128);
-			uchar B = (uchar)(rezultatB(i, j) + 128);
+			int R = (rezultatR(i, j) + 128);
+			int G = (rezultatG(i, j) + 128);
+			int B = (rezultatB(i, j) + 128);
+			uchar r = (uchar)R;
+			uchar g = (uchar)G;
+			uchar b = (uchar)B;
 
-			data[3 * (i * WIDTH + j) + 2] = R;
-			data[3 * (i * WIDTH + j) + 1] = G;
-			data[3 * (i * WIDTH + j) + 0] = B;
+			if (R > 255) {
+				r = 255;
+			}
+			else if (R < 0) {
+				r = 0;
+			}
+
+			if (G > 255) {
+				g = 255;
+			}
+			else if (G < 0) {
+				g = 0;
+			}
+
+			if (B > 255) {
+				b = 255;
+			}
+			else if (B < 0) {
+				b = 0;
+			}
+
+			data[3 * (i * WIDTH + j) + 2] = r;
+			data[3 * (i * WIDTH + j) + 1] = g;
+			data[3 * (i * WIDTH + j) + 0] = b;
 		}
-		printf("%d ", i);
 		imshow("Compressed img ", img);
 		waitKey(10);
 	}
-
+	waitKey();
 	fclose(fileptr);
 	
 	
@@ -846,7 +872,6 @@ int main()
 				break;
 			case 2:
 				decompression();
-				system("pause");
 				break;
 			case 3:
 				compr();
