@@ -10,12 +10,30 @@
 JPEG Compression algorithm has five main basic steps.
 
 * Preprocessing for DCT transformation
+	Separating the RGB matrix into 3 matrixes.
+	Convert matrixes values into integers, and substract 128 from everyt value, to convert it from unsigned
+to signed.
 
 * DCT Transformation
-
+	Here, we apply the FDCT on every pixel, by iterating over every pixel and calculate by formula given.
+	We will calculate dct transfrom and everything else on 8x8 blocks, so we will divide the iamge into 
+8x8 blocks than we pass it to dct transform.
 * Co-efficient Quantization
 
+	Here, we divide each value by quantification matrix and round it back to integer . We are losing here 
+pixel information but that is allright.	
+
 * Lossy Encoding
+
+	Iterate thru every 8x8 block in zig zag fashion and take k amount of values. More, if we want better encoding
+run Huffman on every zig zag value such that at the end of iteration of 8x8 block we will have something like
+15X120 ,..., 40X0 , which means that 120 value is repeating 15 times, 0 value is repeating 40 times.We will store
+the values in a file.
+
+	Decompression is the inversion of compression, so we will read the file, rearrange values into 8x8 blocks
+then multiply by the quntification amtrix, than apply inversion matrix, and after comprime those 8x8 blocks into a matrix
+,but we end with 3 , each for every color, so we comprime those as well, generating one final , compressed matrix
+which is our image.
 
 ![jpeg](jpeg.png)
 
